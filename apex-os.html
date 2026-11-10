@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apex OS – Das Betriebssystem mit moderner Oberfläche</title>
+<meta name="description" content="Apex OS v0.5: ein schlankes Betriebssystem mit moderner Desktop-Oberfläche, Live-System und Installationsassistent.">
+<style>
+  :root {
+    --bg: #0b0d14;
+    --bg-2: #11141e;
+    --surface: rgba(255,255,255,0.04);
+    --surface-hi: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.10);
+    --text: #eef1f8;
+    --muted: #9aa3b8;
+    --accent: #7c5cff;
+    --accent-2: #22d3ee;
+    --radius: 18px;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f4f6fb;
+      --bg-2: #ffffff;
+      --surface: rgba(0,0,0,0.03);
+      --surface-hi: rgba(0,0,0,0.06);
+      --border: rgba(0,0,0,0.10);
+      --text: #111523;
+      --muted: #5b6478;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(900px 600px at 15% -10%, rgba(124,92,255,0.25), transparent 60%),
+      radial-gradient(800px 600px at 110% 10%, rgba(34,211,238,0.18), transparent 60%);
+    pointer-events: none; z-index: -1;
+  }
+  a { color: inherit; text-decoration: none; }
+  .container { width: min(1120px, 92%); margin: 0 auto; }
+
+  /* Navigation */
+  nav {
+    position: sticky; top: 0; z-index: 20;
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    background: color-mix(in srgb, var(--bg) 70%, transparent);
+    border-bottom: 1px solid var(--border);
+  }
+  nav .container { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: .02em; }
+  .logo-mark {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 6px 20px rgba(124,92,255,.45);
+  }
+  .nav-links { display: flex; gap: 28px; font-size: .95rem; color: var(--muted); }
+  .nav-links a:hover { color: var(--text); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 22px; border-radius: 999px; font-weight: 600; font-size: .95rem;
+    border: 1px solid transparent; cursor: pointer; transition: transform .2s, box-shadow .2s, background .2s;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), #5b8cff);
+    color: #fff; box-shadow: 0 10px 30px rgba(124,92,255,.35);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(124,92,255,.5); }
+  .btn-ghost { border-color: var(--border); background: var(--surface); color: var(--text); }
+  .btn-ghost:hover { background: var(--surface-hi); }
+  @media (max-width: 720px) { .nav-links { display: none; } }
+
+  /* Hero */
+  .hero { padding: 96px 0 72px; text-align: center; }
+  .badge {
+    display: inline-block; padding: 6px 14px; border-radius: 999px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); font-size: .85rem; margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1.05; letter-spacing: -.03em;
+    font-weight: 800; margin-bottom: 20px;
+  }
+  .gradient-text {
+    background: linear-gradient(120deg, #fff 10%, var(--accent) 50%, var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p.lead { color: var(--muted); font-size: clamp(1.05rem, 2vw, 1.25rem); max-width: 620px; margin: 0 auto 36px; }
+  .hero-actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+  /* Desktop mockup */
+  .mockup {
+    margin: 72px auto 0; max-width: 960px; border-radius: 22px;
+    border: 1px solid var(--border); background: var(--bg-2);
+    box-shadow: 0 40px 100px rgba(0,0,0,.45); overflow: hidden;
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+  .screen {
+    position: relative; aspect-ratio: 16 / 9;
+    background:
+      radial-gradient(circle at 20% 20%, rgba(124,92,255,.55), transparent 45%),
+      radial-gradient(circle at 85% 80%, rgba(34,211,238,.45), transparent 45%),
+      linear-gradient(160deg, #1a1d33, #0a0c15);
+  }
+  .taskbar {
+    position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
+    display: flex; gap: 10px; padding: 8px 12px; border-radius: 16px;
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+    backdrop-filter: blur(12px);
+  }
+  .taskbar span {
+    width: 34px; height: 34px; border-radius: 10px; background: rgba(255,255,255,.14);
+  }
+  .taskbar span:first-child { background: linear-gradient(135deg, var(--accent), var(--accent-2)); }
+  .window {
+    position: absolute; border-radius: 14px; background: rgba(20,22,36,.85);
+    border: 1px solid rgba(255,255,255,.12); box-shadow: 0 20px 50px rgba(0,0,0,.4);
+    padding: 14px;
+  }
+  .window .bar { display: flex; gap: 6px; margin-bottom: 12px; }
+  .window .bar i { width: 10px; height: 10px; border-radius: 50%; background: #ff5f57; }
+  .window .bar i:nth-child(2) { background: #febc2e; }
+  .window .bar i:nth-child(3) { background: #28c840; }
+  .w1 { left: 8%; top: 12%; width: 44%; height: 58%; }
+  .w2 { right: 8%; top: 22%; width: 32%; height: 40%; }
+  .lines div { height: 8px; border-radius: 4px; background: rgba(255,255,255,.14); margin-bottom: 10px; }
+  .lines div:nth-child(2) { width: 80%; }
+  .lines div:nth-child(3) { width: 60%; }
+  .lines div:nth-child(4) { width: 90%; }
+  .tile-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .tile-grid span { aspect-ratio: 1; border-radius: 12px; background: rgba(255,255,255,.10); }
+  .tile-grid span:nth-child(2) { background: rgba(124,92,255,.5); }
+  .tile-grid span:nth-child(5) { background: rgba(34,211,238,.45); }
+
+  /* Sections */
+  section { padding: 96px 0; }
+  .section-head { text-align: center; max-width: 640px; margin: 0 auto 56px; }
+  .eyebrow { color: var(--accent-2); font-weight: 600; font-size: .85rem; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 12px; }
+  h2 { font-size: clamp(1.9rem, 4vw, 2.8rem); letter-spacing: -.02em; line-height: 1.15; margin-bottom: 14px; }
+  .section-head p { color: var(--muted); font-size: 1.05rem; }
+
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .card {
+    padding: 28px; border-radius: var(--radius);
+    background: var(--surface); border: 1px solid var(--border);
+    transition: transform .25s, background .25s, border-color .25s;
+  }
+  .card:hover { transform: translateY(-4px); background: var(--surface-hi); border-color: rgba(124,92,255,.45); }
+  .icon {
+    width: 48px; height: 48px; border-radius: 14px; margin-bottom: 18px;
+    display: grid; place-items: center; font-size: 1.4rem;
+    background: linear-gradient(135deg, rgba(124,92,255,.25), rgba(34,211,238,.2));
+    border: 1px solid var(--border);
+  }
+  .card h3 { font-size: 1.15rem; margin-bottom: 8px; }
+  .card p { color: var(--muted); font-size: .97rem; }
+  @media (max-width: 860px) { .grid-3 { grid-template-columns: 1fr; } }
+
+  /* Steps */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; counter-reset: step; }
+  .step { position: relative; padding: 26px; border-radius: var(--radius); border: 1px dashed var(--border); }
+  .step::before {
+    counter-increment: step; content: counter(step, decimal-leading-zero);
+    display: block; font-size: 2rem; font-weight: 800; margin-bottom: 14px;
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .step h3 { font-size: 1.05rem; margin-bottom: 6px; }
+  .step p { color: var(--muted); font-size: .93rem; }
+  @media (max-width: 960px) { .steps { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
+
+  /* Download */
+  .download {
+    padding: 56px; border-radius: 28px; text-align: center;
+    background: linear-gradient(135deg, rgba(124,92,255,.22), rgba(34,211,238,.12));
+    border: 1px solid var(--border);
+  }
+  .download p { color: var(--muted); max-width: 560px; margin: 14px auto 28px; }
+  .specs { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+  .spec { padding: 8px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); font-size: .88rem; color: var(--muted); }
+
+  /* Changelog */
+  .timeline { max-width: 720px; margin: 0 auto; border-left: 2px solid var(--border); padding-left: 28px; }
+  .entry { position: relative; margin-bottom: 36px; }
+  .entry::before {
+    content: ""; position: absolute; left: -36px; top: 6px; width: 14px; height: 14px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 0 0 4px var(--bg);
+  }
+  .entry .ver { font-weight: 700; font-size: 1.1rem; }
+  .entry .tag { font-size: .8rem; color: var(--accent-2); margin-left: 8px; }
+  .entry ul { margin-top: 8px; padding-left: 18px; color: var(--muted); }
+  .entry li { margin-bottom: 4px; }
+
+  /* Footer */
+  footer { border-top: 1px solid var(--border); padding: 40px 0; color: var(--muted); font-size: .9rem; }
+  footer .container { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+
+  @media (max-width: 720px) {
+    .download { padding: 36px 24px; }
+    .hero { padding-top: 64px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mockup { animation: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <a href="#top" class="logo"><span class="logo-mark"></span>Apex OS</a>
+    <div class="nav-links">
+      <a href="#features">Funktionen</a>
+      <a href="#install">Installation</a>
+      <a href="#download">Download</a>
+      <a href="#changelog">Changelog</a>
+    </div>
+    <a href="#download" class="btn btn-primary">Herunterladen</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="container">
+    <span class="badge">Version 0.5 · Live-System &amp; Installer</span>
+    <h1>Ein Betriebssystem,<br><span class="gradient-text">das modern aussieht.</span></h1>
+    <p class="lead">Apex OS bringt eine klare, flüssige Desktop-Oberfläche auf dein System: Fenster, Animationen, Dateien und ein Startmenü, das sich sofort vertraut anfühlt.</p>
+    <div class="hero-actions">
+      <a href="#download" class="btn btn-primary">ISO herunterladen</a>
+      <a href="#features" class="btn btn-ghost">Funktionen entdecken</a>
+    </div>
+
+    <div class="mockup" aria-hidden="true">
+      <div class="screen">
+        <div class="window w1">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <div class="lines"><div></div><div></div><div></div><div></div></div>
+        </div>
+        <div class="window w2">
+          <div class="bar"><i></i><i></i><i></i></div>
+          <div class="tile-grid"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        </div>
+        <div class="taskbar"><span></span><span></span><span></span><span></span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Funktionen</div>
+      <h2>Alles, was ein Desktop braucht.</h2>
+      <p>Schlank gehalten, aber mit dem Komfort, den man von einem modernen System erwartet.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card">
+        <div class="icon">✨</div>
+        <h3>Flüssige Animationen</h3>
+        <p>Fenster, Menüs und Übergänge bewegen sich weich und geben dem System ein lebendiges Gefühl.</p>
+      </div>
+      <div class="card">
+        <div class="icon">⏻</div>
+        <h3>Ausschalten &amp; Neustart</h3>
+        <p>Der Power-Knopf oben links bietet dir die Wahl zwischen Ausschalten und Neustart, direkt dort, wo du ihn erwartest.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📁</div>
+        <h3>Dateien verwalten</h3>
+        <p>Der Dateimanager zeigt deine Ordner und Textdokumente übersichtlich an, mit der Möglichkeit, neue Dateien anzulegen.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📝</div>
+        <h3>Notizen</h3>
+        <p>Schnell eine Notiz schreiben, ohne lange suchen zu müssen. Die App ist sofort einsatzbereit.</p>
+      </div>
+      <div class="card">
+        <div class="icon">💿</div>
+        <h3>Live-System</h3>
+        <p>Probiere Apex OS direkt von der ISO aus, ganz ohne etwas auf der Festplatte zu verändern.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🛠</div>
+        <h3>Installationsassistent</h3>
+        <p>Ein geführter Installer richtet das System auf deiner Festplatte ein, Schritt für Schritt.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="install">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Installation</div>
+      <h2>In vier Schritten startklar.</h2>
+      <p>Vom USB-Stick bis zum fertigen Desktop dauert es nur wenige Minuten.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <h3>ISO laden</h3>
+        <p>Lade die aktuelle Apex-OS-ISO herunter.</p>
+      </div>
+      <div class="step">
+        <h3>Brennen oder starten</h3>
+        <p>Schreibe die ISO auf einen USB-Stick oder binde sie in deine virtuelle Maschine ein.</p>
+      </div>
+      <div class="step">
+        <h3>Live testen</h3>
+        <p>Starte das Live-System und überzeuge dich von Oberfläche und Funktionen.</p>
+      </div>
+      <div class="step">
+        <h3>Installieren</h3>
+        <p>Starte den Assistenten, wähle deine Festplatte und folge den Anweisungen.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="container">
+    <div class="download">
+      <div class="eyebrow">Download</div>
+      <h2>Bereit für Apex OS?</h2>
+      <p>Die Installations-ISO enthält Installer, Live-System und die komplette grafische Oberfläche.</p>
+      <a href="#" class="btn btn-primary">apex-desktop.iso herunterladen</a>
+      <div class="specs">
+        <span class="spec">Version 0.5</span>
+        <span class="spec">32 Bit</span>
+        <span class="spec">Start per BIOS/MBR</span>
+        <span class="spec">IDE/ATA-Datenträger</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="changelog">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Changelog</div>
+      <h2>Was sich getan hat.</h2>
+      <p>Die Entwicklung von Apex OS in Kürze.</p>
+    </div>
+    <div class="timeline">
+      <div class="entry">
+        <div class="ver">v0.5 <span class="tag">aktuell</span></div>
+        <ul>
+          <li>Überarbeitete Desktop-Oberfläche mit Animationen</li>
+          <li>Power-Menü oben links (Ausschalten / Neustart)</li>
+          <li>Dateimanager mit Ordnern und Textdokumenten</li>
+          <li>Installationsassistent mit grafischer Oberfläche</li>
+        </ul>
+      </div>
+      <div class="entry">
+        <div class="ver">v0.4</div>
+        <ul>
+          <li>Erste Version mit Startbildschirm und Live-System</li>
+          <li>Notizen-App und Willkommensseite</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="logo"><span class="logo-mark"></span>Apex OS</div>
+    <div>© 2026 Apex OS · Alle Rechte vorbehalten</div>
+  </div>
+</footer>
+
+</body>
+</html>
